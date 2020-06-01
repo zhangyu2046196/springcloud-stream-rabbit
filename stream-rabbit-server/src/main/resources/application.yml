@@ -1,0 +1,46 @@
+server:
+  port: 8099
+
+spring:
+  application:
+    name: rabbit-server
+  cloud:
+    stream:
+      default:
+        exchangeType: fanout   #交换机类型  包括 direct、topic、fanout、headers
+      binders:
+        erpBinder:   #自定义绑定器对象
+          type: rabbit  #mq消息中间件类型rabbit 支持rabbit和kafka
+      bindings:
+        erpInput:    #定义消费者绑定器
+          destination: erp   #交换机名称  rabbitmq是exchange、kafka是topic
+          binder: erpBinder  #指定上面定义的绑定器对象
+          group: ${spring.application.name}-${spring.cloud.client.ip-address}-${server.port}  #指定消费者组名 指定后消息自动持久化 消费者组名就是队列名称
+          consumer:
+            exchangeType: fanout  #交换机类型  包括 direct、topic、fanout、headers
+            autoBindDlq: true
+            republishToDlq: true
+            max-attempts: 3
+            concurrency: 10
+        erpOutPut:
+          destination: erp   #交换机名称  rabbitmq是exchange、kafka是topic
+          binder: erpBinder  #指定上面定义的绑定器对象
+          producer:
+            exchangeType: fanout  #交换机类型  包括 direct、topic、fanout、headers
+      rabbit:
+        bindings:
+          erpInput:
+            consumer:
+              max-concurrency: 100
+              prefetch: 1
+              requeue-rejected: false
+              republish-to-dlq: true
+          erpOutPut:
+            producer:
+              exchangeType: fanout
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: root
+    password: 123456
+    virtual-host: erp
